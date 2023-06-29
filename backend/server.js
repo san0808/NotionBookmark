@@ -10,12 +10,11 @@ const notion = new Client({ auth: process.env.NOTION_API_TOKEN });
 
 app.post("/api/bookmarks", async (req, res) => {
     try {
-      const { title, languages, url, tags, notes } = req.body;
+      const { title, url, tags, notes } = req.body;
   
       // Create an object with the bookmark data
       const bookmark = {
         title,
-        languages,
         url,
         tags,
         notes,

@@ -3,7 +3,6 @@ document.getElementById("bookmarkForm").addEventListener("submit", async functio
 
   // Retrieve form values
   var title = document.getElementsByName("title")[0].value;
-  var languages = document.getElementsByName("languages")[0].value;
   var url = document.getElementsByName("url")[0].value;
   // var tags = document.getElementsByName("tags")[0].value;
   var notes = document.getElementsByName("notes")[0].value;
