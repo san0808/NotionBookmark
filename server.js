@@ -49,15 +49,27 @@ app.post("/api/bookmarks", async (req, res) => {
           //     },
           //   ],
           // },
-          // "Notes": {
-          //  " rich_text": [
-          //     {
-          //       "text": {
-          //         "content": bookmark.notes,
-          //       },
-          //     },
-          //   ],
-          // },
+          "Notes": {
+           "rich_text": [
+              {
+                "type": "text",
+                "text": {
+                  "content": bookmark.notes,
+                  "link": null
+                },
+                "annotations": {
+                  "bold": false,
+                  "italic": false,
+                  "strikethrough": false,
+                  "underline": false,
+                  "code": false,
+                  "color": "default"
+                },
+                "plain_text": "There is some ",
+                "href": null
+              },
+            ],
+          },
         },
       });
       
