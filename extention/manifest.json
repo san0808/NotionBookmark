@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Notion Bookmarks",
+  "short_name": "notion-bookmark",
+  "version": "1.0.1",
+  "description": "Store Links to Notion",
+  "icons": {
+    "16": "/icon-16.png"
+  },
+  "permissions": ["activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-eval' https://www.notion.so https://cdn.jsdelivr.net"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": [
+        "inject.js"
+      ]
+      
+    }
+  ]
+}
+
+
+  
