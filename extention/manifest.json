@@ -7,7 +7,7 @@
   "icons": {
     "16": "/icon-16.png"
   },
-  "permissions": ["activeTab"],
+  "permissions": ["http://twitter.com/","https://twitter.com/","tabs","activeTab","storage"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "index.html"
@@ -19,11 +19,11 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*/*",
-        "http://*/*"
+        "http://www.twitter.com/*",
+        "https://twitter.com/*"
       ],
       "js": [
-        "inject.js"
+        "jquery.js","inject.js"
       ]
       
     }
