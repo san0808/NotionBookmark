@@ -1,87 +1,139 @@
 require('dotenv').config();
-const { Client } = require("@notionhq/client");
-const bodyParser = require('body-parser');
 const express = require('express');
-const app = express();
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const cookieParser = require('cookie-parser');
+const { Client } = require("@notionhq/client");
 
+const app = express();
+const YOUR_CALLBACK_URL = 'http://localhost:5000/auth/notion/callback'; // Example: 'http://localhost:5000/auth/notion/callback'
 
 app.use(bodyParser.json());
-const notion = new Client({ auth: process.env.NOTION_API_TOKEN });
+app.use(cookieParser());
 
-app.post("/api/bookmarks", async (req, res) => {
+// Handle the redirect to Notion's OAuth page
+app.get('/auth/notion', (req, res) => {
+    const redirectUri = encodeURIComponent(YOUR_CALLBACK_URL);
+    const clientId = process.env.NOTION_CLIENT_ID;
+    res.redirect(`https://api.notion.com/v1/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`);
+});
+
+// Handle the callback from Notion and set the access token in a secure cookie
+app.get('/auth/notion/callback', async (req, res) => {
     try {
-      const { title, url, tags, notes } = req.body;
-  
-      // Create an object with the bookmark data
-      const bookmark = {
-        title,
-        url,
-        tags,
-        notes,
-      };
-  
-      // Save the bookmark to the Notion database
-      const databaseId = process.env.NOTION_DATABASE_ID; 
-  
-      const response = await notion.pages.create({
-        "parent": { 
-          "type": "database_id",
-          "database_id": databaseId 
-        },
-        "properties": {
-          "Name": {
-            "title": [
-              {
-                "text": {
-                  "content": bookmark.title,
-                },
-              },
-            ],
-          },
-          "URL": {
-            "url": url,
-          },
-          // "Tags": {
-          //  " multi_select": [
-          //     {
-          //       "name": bookmark.tags,
-          //     },
-          //   ],
-          // },
-          "Notes": {
-           "rich_text": [
-              {
-                "type": "text",
-                "text": {
-                  "content": bookmark.notes,
-                  "link": null
-                },
-                "annotations": {
-                  "bold": false,
-                  "italic": false,
-                  "strikethrough": false,
-                  "underline": false,
-                  "code": false,
-                  "color": "default"
-                },
-                "plain_text": "There is some ",
-                "href": null
-              },
-            ],
-          },
-        },
-      });
-      
-  
-      res.status(200).json({ message: "Bookmark saved successfully" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "An error occurred while saving the bookmark" });
-    }
-  });
-  
+        let code = req.query.code;
+        notionClientId = process.env.NOTION_CLIENT_ID;
+        notionClientSecret = process.env.NOTION_CLIENT_SECRET;
 
-const port = 5000; // Replace with your desired port number
+        const resp = await axios({
+            method: "POST",
+            url: "https://api.notion.com/v1/oauth/token",
+            auth: { username: notionClientId, password: notionClientSecret },
+            headers: { "Content-Type": "application/json" },
+            data: { code, grant_type: "authorization_code" },
+          });
+        
+        const accessToken = resp.data.access_token;
+
+        res.cookie('notion_access_token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 3600000 // 1 hour
+        });
+        console.log("Access token set in cookie");
+        // res.redirect('/some-page-after-auth'); // Redirect to a desired page after successful authentication
+    } catch (error) {
+        console.error("Error in /auth/notion/callback:", error);
+        res.status(500).send('Error during the authentication process. Please try again.');
+    }
+});
+
+// Fetch a list of databases for an authenticated user
+app.get('/notion/databases', async (req, res) => {
+    try {
+        const userToken = req.cookies.notion_access_token;
+        if (!userToken) {
+            return res.status(401).send('Not authenticated');
+        }
+
+        const notion = new Client({ auth: userToken });
+        const databases = await notion.databases.list();
+        res.json(databases);
+    } catch (error) {
+        console.error("Error in /notion/databases:", error);
+        res.status(500).send('Error fetching databases from Notion. Please check your connection and try again.');
+    }
+});
+
+// Save a bookmark to a selected database
+app.post('/notion/save', async (req, res) => {
+    try {
+        const { title, url, databaseId, tags, notes } = req.body;
+        const userToken = req.cookies.notion_access_token;
+        
+        if (!userToken) {
+            return res.status(401).send('Not authenticated');
+        }
+
+        const notion = new Client({ auth: userToken });
+        await notion.pages.create({
+            parent: { type: "database_id", database_id: databaseId },
+            properties: {
+                "Name": {
+                    "title": [
+                        {
+                            "text": {
+                                "content": title
+                            }
+                        }
+                    ]
+                },
+                "URL": {
+                    "url": url
+                },
+                "Tags": {
+                    "multi_select": tags.map(tag => ({
+                        "name": tag
+                    }))
+                },
+                "Notes": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": notes
+                            },
+                            "annotations": {
+                                "bold": false,
+                                "italic": false,
+                                "strikethrough": false,
+                                "underline": false,
+                                "code": false,
+                                "color": "default"
+                            },
+                            "plain_text": notes,
+                            "href": null
+                        }
+                    ]
+                }
+            }
+            
+        });
+        
+        res.status(200).send('Bookmark saved');
+    } catch (error) {
+        console.error("Error in /notion/save:", error);
+        res.status(500).send('Error saving the bookmark to Notion. Please ensure you have the right permissions and try again.');
+    }
+});
+
+// Log out user and clear the token cookie
+app.get('/logout', (req, res) => {
+    res.clearCookie('notion_access_token');
+    res.redirect('/login-page-or-any-other'); // Redirect to login page or home page after logout
+});
+
+const port = 5000;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });
