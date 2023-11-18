@@ -2,32 +2,20 @@
   "manifest_version": 3,
   "name": "Notion Bookmarks",
   "short_name": "notion-bookmark",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Store Links to Notion",
   "icons": {
     "16": "/icon-16.png"
   },
-  "permissions": ["http://twitter.com/","https://twitter.com/","tabs","activeTab","storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": ["tabs", "activeTab", "storage", "http://localhost:5000/*"],
+  "host_permissions": ["<all_urls>", "https://www.notion.so/*"],
   "action": {
     "default_popup": "index.html"
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'",
     "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-eval' https://www.notion.so https://cdn.jsdelivr.net"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "http://www.twitter.com/*",
-        "https://twitter.com/*"
-      ],
-      "js": [
-        "jquery.js","inject.js"
-      ]
-      
-    }
-  ]
+  }
 }
 
 
